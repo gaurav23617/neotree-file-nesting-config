@@ -1,0 +1,96 @@
+name: Auto Update Neo-tree Config
+
+on:
+  schedule:
+    # Run every day at 2 AM UTC
+    - cron: "0 2 * * *"
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  update-config:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Lua
+        uses: leafo/gh-actions-lua@v10
+        with:
+          luaVersion: "5.4"
+
+      - name: Fetch latest VSCode config
+        id: fetch
+        run: |
+          # Fetch the latest update.mjs file
+          curl -s https://raw.githubusercontent.com/antfu/vscode-file-nesting-config/main/update.mjs -o /tmp/update.mjs
+
+          # Fetch the README to extract the JSON config
+          curl -s https://raw.githubusercontent.com/antfu/vscode-file-nesting-config/main/README.md -o /tmp/README.md
+
+          # Extract the JSON config from README
+          sed -n '/```jsonc/,/```/p' /tmp/README.md | sed '1d;$d' | grep -A 999 '"explorer.fileNesting.patterns"' | sed '1d' > /tmp/vscode-config.json
+
+          # Get the update date from README
+          UPDATE_DATE=$(grep -oP '// updated \K[0-9-]+ [0-9:]+' /tmp/README.md | head -1)
+          echo "update_date=$UPDATE_DATE" >> $GITHUB_OUTPUT
+
+          # Check if there's a difference with current config
+          if [ -f "last_update.txt" ]; then
+            LAST_UPDATE=$(cat last_update.txt)
+            if [ "$UPDATE_DATE" = "$LAST_UPDATE" ]; then
+              echo "has_changes=false" >> $GITHUB_OUTPUT
+              echo "No updates available"
+            else
+              echo "has_changes=true" >> $GITHUB_OUTPUT
+              echo "New updates available"
+            fi
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "First run - will update"
+          fi
+
+      - name: Convert to Neo-tree format
+        if: steps.fetch.outputs.has_changes == 'true'
+        run: |
+          # Run the conversion script
+          lua build/convert.lua
+
+      - name: Update timestamp
+        if: steps.fetch.outputs.has_changes == 'true'
+        run: |
+          echo "${{ steps.fetch.outputs.update_date }}" > last_update.txt
+
+      - name: Check for changes
+        id: git_check
+        if: steps.fetch.outputs.has_changes == 'true'
+        run: |
+          git diff --quiet || echo "changed=true" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request
+        if: steps.fetch.outputs.has_changes == 'true' && steps.git_check.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: update neo-tree nesting config from upstream"
+          title: "🔄 Auto-update: Neo-tree nesting config"
+          body: |
+            ## Auto-generated update
+
+            This PR updates the Neo-tree file nesting configuration based on the latest changes from [antfu/vscode-file-nesting-config](https://github.com/antfu/vscode-file-nesting-config).
+
+            **Update date:** ${{ steps.fetch.outputs.update_date }}
+
+            ### Changes
+            - Updated nesting rules from upstream VSCode config
+            - Converted to Neo-tree Lua format
+            - Updated README with latest rules
+
+            Please review the changes before merging.
+          branch: auto-update-config
+          delete-branch: true
+          labels: |
+            automated
+            dependencies
