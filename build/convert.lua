@@ -272,7 +272,7 @@ A neovim implementation of the [vscode-file-nesting-config](https://github.com/a
     branch = 'v3.x',
     dependencies = {
       -- Others dependencies
-      'saifulapm/neotree-file-nesting-config', -- add plugin as dependency. no need any other config or setup call
+      'gaurav23617/neotree-file-nesting-config', -- add plugin as dependency. no need any other config or setup call
     },
     opts = {
       -- recommanded config for better UI
@@ -289,8 +289,8 @@ A neovim implementation of the [vscode-file-nesting-config](https://github.com/a
       default_component_configs = {
         indent = {
           with_expanders = true,
-          expander_collapsed = '',
-          expander_expanded = '',
+          expander_collapsed = '',
+          expander_expanded = '',
         },
       },
       -- others config

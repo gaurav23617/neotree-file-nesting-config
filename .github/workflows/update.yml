@@ -2,8 +2,8 @@ name: Auto Update Neo-tree Config
 
 on:
   schedule:
-    # Run every day at 2 AM UTC
-    - cron: "0 2 * * *"
+    # Run every 10 days at 7 AM IST (which is 1:30 AM UTC)
+    - cron: "30 1 */10 * *"
   workflow_dispatch: # Allow manual trigger
 
 jobs:
@@ -112,7 +112,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore: update neo-tree nesting config from upstream"
-          title: "🔄 Auto-update: Neo-tree nesting config"
+          title: "Auto-update: Neo-tree nesting config"
           body: |
             ## Auto-generated update
 
@@ -121,15 +121,14 @@ jobs:
             **Update date:** ${{ steps.fetch.outputs.update_date }}
 
             ### Changes
-            - ✅ Fetched latest nesting rules from upstream VSCode config
-            - ✅ Converted to Neo-tree Lua format
-            - ✅ Updated README with latest rules
-            - ✅ Updated timestamp
+            -  Fetched latest nesting rules from upstream VSCode config
+            -  Converted to Neo-tree Lua format
+            -  Updated README with latest rules
+            -  Updated timestamp
 
             ### Files Changed
             - `lua/neotree-file-nesting-config.lua` - Updated nesting rules
             - `README.md` - Updated documentation
-            - `last_update.txt` - Updated timestamp
 
             Please review the changes before merging.
 
